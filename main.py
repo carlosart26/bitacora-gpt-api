@@ -13,29 +13,79 @@ DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 notion = Client(auth=NOTION_TOKEN)
 app = FastAPI()
 
-class BitacoraEntrada(BaseModel):
-    fecha: str
+class BitacoraEntradaExtendida(BaseModel):
+    donde_ocurrio: str
+    cuando_ocurrio: str
+    con_quien: str
     que_paso: str
-    lo_que_pense: str
-    lo_que_aprendi: str
-    potencial_para_post: str
-    etiquetas: list[str] = []
-    clasificaciones: list[str] = []
+    detalle_significativo: str
+    que_revelo: str
+    que_aprendi: str
+    pilar_de_marca: list[str]
+    tipo_de_contenido: list[str]
+    titulo_sugerido: str
 
-@app.post("/api/save-bitacora")
-def guardar_bitacora(entrada: BitacoraEntrada):
+@app.post("/api/save-bitacora-v2")
+def guardar_bitacora_v2(entrada: BitacoraEntradaExtendida):
     try:
         response = notion.pages.create(**{
             "parent": {"database_id": DATABASE_ID},
             "properties": {
-                "Fecha": {"date": {"start": entrada.fecha}},
-                "Idea": {"title": [{"text": {"content": entrada.lo_que_aprendi}}]},
-                "Contexto": {"rich_text": [{"text": {"content": f"Qué pasó: {entrada.que_paso}\nLo que pensé: {entrada.lo_que_pense}"}}]},
-                "Potencial para post": {"rich_text": [{"text": {"content": entrada.potencial_para_post}}]},
-                "Origen": {"rich_text": [{"text": {"content": "GPT"}}]},
-                "Etiquetas": {"multi_select": [{"name": tag} for tag in entrada.etiquetas]},
-                "Clasificación": {"multi_select": [{"name": clas} for clas in entrada.clasificaciones]},
-                "ID de registro": {"rich_text": [{"text": {"content": datetime.now().isoformat()}}]},
+                "Contexto breve": {
+                    "rich_text": [{
+                        "text": {
+                            "content": f"Dónde: {entrada.donde_ocurrio}\nCuándo: {entrada.cuando_ocurrio}\nCon quién: {entrada.con_quien}"
+                        }
+                    }]
+                },
+                "Anécdota": {
+                    "rich_text": [{
+                        "text": {
+                            "content": entrada.que_paso + "\n\n" + entrada.detalle_significativo
+                        }
+                    }]
+                },
+                "Reflexión o Insight": {
+                    "rich_text": [{
+                        "text": {
+                            "content": entrada.que_revelo + "\n" + entrada.que_aprendi
+                        }
+                    }]
+                },
+                "Pilar de Marca": {
+                    "multi_select": [{"name": pilar} for pilar in entrada.pilar_de_marca]
+                },
+                "Relación con tu mensaje": {
+                    "rich_text": [{
+                        "text": {
+                            "content": entrada.que_revelo
+                        }
+                    }]
+                },
+                "Tipo de contenido": {
+                    "multi_select": [{"name": tipo} for tipo in entrada.tipo_de_contenido]
+                },
+                "Título sugerido": {
+                    "rich_text": [{
+                        "text": {
+                            "content": entrada.titulo_sugerido
+                        }
+                    }]
+                },
+                "Origen": {
+                    "rich_text": [{
+                        "text": {
+                            "content": "GPT"
+                        }
+                    }]
+                },
+                "ID de registro": {
+                    "rich_text": [{
+                        "text": {
+                            "content": datetime.now().isoformat()
+                        }
+                    }]
+                }
             }
         })
         return {"status": "success", "message": "Entrada guardada en Notion"}
